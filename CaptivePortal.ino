@@ -4,107 +4,56 @@ extern "C" {
 }
 #endif
 
-/*
-   Captive Portal by: M. Ray Burnette 20150831
-   See Notes tab for original code references and compile requirements
-   Sketch uses 300,640 bytes (69%) of program storage space. Maximum is 434,160 bytes.
-   Global variables use 50,732 bytes (61%) of dynamic memory, leaving 31,336 bytes for local variables. Maximum is 81,920 bytes.
-*/
-
 #include <ESP8266WiFi.h>
 #include "./DNSServer.h"                  // Patched lib
 #include <ESP8266WebServer.h>
+#include <EEPROM.h>
+#include "./WIFIlibGARY.h"
 
 const byte        DNS_PORT = 53;          // Capture DNS requests on port 53
 IPAddress         apIP(10, 10, 10, 1);    // Private network for server
 DNSServer         dnsServer;              // Create the DNS object
 ESP8266WebServer  webServer(80);          // HTTP server
 
-//String responseHTML = ""
-//                      "<!DOCTYPE html><html><head><title>CaptivePortal</title></head><body>"
-//                      "<h1>Hello World!</h1><p>This is a captive portal example. All requests will "
-//                      "be redirected here.</p>" 
-//                      //webServer->client().remoteIP().toString() +
-//                      "</body></html>";
-
 
 
 String responseHTML() {
+
+  setEEPROMString(0, 250, "000 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
+  setEEPROMString(250, 500, "001 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
+  setEEPROMString(500, 750, "002 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
+  setEEPROMString(750, 1000, "003 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
+  setEEPROMString(1000, 1250, "004 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
+  setEEPROMString(1250, 1500, "005 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
+  setEEPROMString(1500, 1750, "006 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
+  setEEPROMString(1750, 2000, "007 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
+
+String custome = getEEPROMString(0, 250) + getEEPROMString(250, 500) + getEEPROMString(500, 750) + getEEPROMString(750, 1000) + getEEPROMString(1000, 1250) + getEEPROMString(1250, 1500) + getEEPROMString(1500, 1750) + getEEPROMString(1750, 2000);
+  
   client_status();
-  return ""
+    return ""
                       "<!DOCTYPE html><html><head><title>CaptivePortal</title></head><body>"
                       "<h1>Hello World!</h1><p>This is a captive portal example. All requests will "
-                      "be redirected here.</p><h1>ip: " +
+                      "be redirected here.</p>"
+                      "<p>" +
+                      getEEPROMString(0, 250) + getEEPROMString(250, 500) + getEEPROMString(500, 750) + getEEPROMString(750, 1000) + getEEPROMString(1000, 1250) + getEEPROMString(1250, 1500) + getEEPROMString(1500, 1750) + getEEPROMString(1750, 2000) +
+                      "</p>"
+                      "<h1>ip: " +
                       webServer.client().remoteIP().toString() +
                       "</h1></body></html>";
 
-  }
-
-void wifi_event_handler_cb(System_Event_t * event)
-{
-  Serial.print(event->event);
-  Serial.println(" evented");
-//    ehConsolePort.print(EVENT_NAMES[event->event]);
-//    ehConsolePort.print(" (");
-//    
-
-        char mac[32] = {0};
-        snprintf(mac, 32, MACSTR ", aid: %d" , MAC2STR(event->event_info.sta_connected.mac), event->event_info.sta_connected.aid);
-        Serial.println(mac);
-
-        Serial.print("ip ");
-        char ipp[32] = {0};
-        snprintf(ipp, 32, IPSTR , IP2STR(event->event_info.got_ip.ip.addr));
-        Serial.println(ipp);
-
-    switch (event->event) {
-      case 5555: {
-        //connected
-        char mac[32] = {0};
-        snprintf(mac, 32, MACSTR ", aid: %d" , MAC2STR(event->event_info.sta_connected.mac), event->event_info.sta_connected.aid);
-        Serial.println(mac);
-
-        Serial.print("ip ");
-        char ipp[32] = {0};
-        snprintf(ipp, 32, IPSTR , IP2STR(event->event_info.got_ip.ip.addr));
-        Serial.println(ipp);
-        
-       
-
-        
-//        Serial.println(IP2STR(event->event_info.got_ip.ip.addr));
-        //Serial.println(ipToString(event->event_info.got_ip.ip));
-      } break;
-      case 6: {
-        //disconnect
-        } break;
-//        case EVENT_STAMODE_CONNECTED:
-//            break;
-//        case EVENT_STAMODE_DISCONNECTED:
-//            break;
-//        case EVENT_STAMODE_AUTHMODE_CHANGE:
-//            break;
-//        case EVENT_STAMODE_GOT_IP:
-//            break;
-//        case EVENT_SOFTAPMODE_STACONNECTED:
-//        case EVENT_SOFTAPMODE_STADISCONNECTED:
-//            {
-//                char mac[32] = {0};
-//                snprintf(mac, 32, MACSTR ", aid: %d" , MAC2STR(event->event_info.sta_connected.mac), event->event_info.sta_connected.aid);
-//                
-//                ehConsolePort.print(mac);
-//            }
-//            break;
-    }
-//
-//    ehConsolePort.println(")");
+                      
 }
 
 
 
+
 void setup() {
+  EEPROM.begin(250);
   Serial.begin(115200);
   WiFi.mode(WIFI_AP);
+
+  String _ssid = getEEPROMString(0, 32);
   
   WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
   WiFi.softAP("DNSServer CaptivePortal example");
@@ -120,7 +69,6 @@ void setup() {
   });
   webServer.begin();
 
-//  wifi_set_event_handler_cb(wifi_event_handler_cb);
 }
 
 void loop() {
