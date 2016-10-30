@@ -23,10 +23,12 @@ String htmlPage(String title, String body) {
            "<title>" + title + "</title>"
          "</head>"
          "<body>" + 
-           "<h2>" + title + "</h2>" +
-           body +
+           "<div class='container'>"
+             "<h2>" + title + "</h2>" +
+             body +
+           "</div>"  
            "<style>" 
-             "h2 {text-align: center;}label {display: block;margin-bottom: 15px;}form {width: 800px;max-width: 100%;margin: 0 auto;display: block;border: 1px solid red;padding: 20px;}textarea {width: 100%;display: block;border: 1px solid gray;border-radius: 4px;outline: 0;padding: 10px 0;margin: 10px 0;}span {color: gray;font-family: \"Courier New\", Serif;display: block;}"
+             "h2 {text-align: center;} label {display: block;  margin-bottom: 15px;} form {display: block;  border: 1px solid gray;  padding: 20px;} .container {text-align: center;  width: 800px;  max-width: 100%;  margin: 0 auto;  display: block; } textarea {width: 100%;  display: block;  border: 1px solid gray;  border-radius: 4px;  outline: 0;  padding: 10px 0;  margin: 10px 0;} span {color: gray;  font-family: \"Courier New\", Serif;  display: block;} .btn {-webkit-appearance: button;  display: inline-block;  padding: 6px 12px;  margin-bottom: 0;  font-size: 14px;  font-weight: 400;  line-height: 1.42857143;  text-align: center;  white-space: nowrap;  vertical-align: middle;  -ms-touch-action: manipulation;  touch-action: manipulation;  cursor: pointer;  -webkit-user-select: none;  -moz-user-select: none;  -ms-user-select: none;  user-select: none;  background-image: none;  border: 1px solid transparent;  border-radius: 4px;} .btn.save, .btn.unlock {color: #fff;  background-color: #5cb85c;  border-color: #4cae4c;}"
            "</style>"
            "</body>"
 "</html>";
@@ -44,73 +46,10 @@ String handle_config() {
                     "<textarea name='mac_list'>" + getEEPROMString(0, 4096) + "</textarea>"
                     "<span>Enter MAC addresses in format A1:B2:C3:D4:E5:F6. Record per line</span>"
                   "</label>"
-                  "<input type='submit' value='Update list'>"
+                  "<input class='btn save' type='submit' value='Update list'>"
                 "</form>";
   return htmlPage("GeekLock: config", body);
 }
-
-
-
-void client_status(String myIP) {
-  unsigned char number_client;
-  struct station_info *stat_info;
-
-  struct ip_addr *IPaddress;
-  IPAddress address;
-  int i=1;
-
-  number_client= wifi_softap_get_station_num(); // Count of stations which are connected to ESP8266 soft-AP
-  stat_info = wifi_softap_get_station_info();
-
-  Serial.print("myIP = ");
-  Serial.println(myIP);
-
-  Serial.print(" Total connected_client are = ");
-  Serial.println(number_client);
-
-  while (stat_info != NULL) {
-    IPaddress = &stat_info->ip;
-    address = IPaddress->addr;
-
-    Serial.print("client= ");
-
-    Serial.print(i);
-    Serial.print(" ip adress is = ");
-    Serial.print((address));
-    Serial.print(" with mac adress is = ");
-
-    Serial.print(stat_info->bssid[0],HEX);
-    Serial.print(stat_info->bssid[1],HEX);
-    Serial.print(stat_info->bssid[2],HEX);
-    Serial.print(stat_info->bssid[3],HEX);
-    Serial.print(stat_info->bssid[4],HEX);
-    Serial.print(stat_info->bssid[5],HEX);
-
-    stat_info = STAILQ_NEXT(stat_info, next);
-    i++;
-    Serial.println();
-  }
-  delay(500);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 String getMac(String myIP) {
   unsigned char number_client;
@@ -123,12 +62,6 @@ String getMac(String myIP) {
   number_client= wifi_softap_get_station_num(); // Count of stations which are connected to ESP8266 soft-AP
   stat_info = wifi_softap_get_station_info();
 
-  Serial.print("myIP = ");
-  Serial.println(myIP);
-
-  Serial.print(" Total connected_client are = ");
-  Serial.println(number_client);
-
   while (stat_info != NULL) {
     IPaddress = &stat_info->ip;
     address = IPaddress->addr;
@@ -136,82 +69,60 @@ String getMac(String myIP) {
     String ipp = address.toString();
 
     if (ipp == myIP) {
-      return stat_info->bssid;   
+      String mac = String(stat_info->bssid[0],HEX) + ":" + String(stat_info->bssid[1],HEX) + ":" + String(stat_info->bssid[2],HEX) + ":" + String(stat_info->bssid[3],HEX) + ":" + String(stat_info->bssid[4],HEX) + ":" + String(stat_info->bssid[5],HEX);
+      mac.toUpperCase();
+      return mac;
     }
-
-    Serial.print("client= ");
-
-    Serial.print(i);
-    Serial.print(" ip adress is = ");
-    Serial.print((address));
-    Serial.print(" with mac adress is = ");
-
-    Serial.print(stat_info->bssid[0],HEX);
-    Serial.print(stat_info->bssid[1],HEX);
-    Serial.print(stat_info->bssid[2],HEX);
-    Serial.print(stat_info->bssid[3],HEX);
-    Serial.print(stat_info->bssid[4],HEX);
-    Serial.print(stat_info->bssid[5],HEX);
 
     stat_info = STAILQ_NEXT(stat_info, next);
     i++;
-    Serial.println();
   }
-  delay(500);
+  
+  return "NO:MA:CA:DD:RE:SS";
+}
+
+bool hasAccess(String mac) {
+  String macList = getEEPROMString(0, 4096);
+
+  if (macList.indexOf(mac) >= 0) {
+    return true;
+  }
+
+  return false;
 }
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 String indexHtml() {
-client_status(webServer.client().remoteIP().toString());
-//  setEEPROMString(0, 250, "000 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
-//  setEEPROMString(250, 500, "001 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
-//  setEEPROMString(500, 750, "002 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
-//  setEEPROMString(750, 1000, "003 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
-//  setEEPROMString(1000, 1250, "004 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
-//  setEEPROMString(1250, 1500, "005 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
-//  setEEPROMString(1500, 1750, "006 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
-//  setEEPROMString(1750, 2000, "007 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book$");
+  String ip = webServer.client().remoteIP().toString();
+  String mac = getMac(ip);
+  bool access = hasAccess(mac);
 
-//String custome = getEEPROMString(0, 250) + getEEPROMString(250, 500) + getEEPROMString(500, 750) + getEEPROMString(750, 1000) + getEEPROMString(1000, 1250) + getEEPROMString(1250, 1500) + getEEPROMString(1500, 1750) + getEEPROMString(1750, 2000);
+  String msg = "<h1 class='msg denied'>Access denied</h1>";
+  if (access) {
+    String unlock = webServer.arg("unlock");
+    if(unlock != "") {
+      msg = "<h1 class='msg granted'>Opened!</h1>";
+      digitalWrite(2, LOW);   // turn the LED on (HIGH is the voltage level)
+      delay(1000);              // wait for a second
+      digitalWrite(2, HIGH);  
+    } else {
+      msg = "<h1 class='msg granted'>Access granted</h1>";  
+    }
+  }
   
-//  client_status();
-    return ""
-                      "<!DOCTYPE html><html><head><title>CaptivePortal</title></head><body>"
-                      "<h1>Hello World!</h1><p>This is a captive portal example. All requests will "
-                      "be redirected here.</p>"
-                      "<p>" 
-//                      getEEPROMString(0, 250) + getEEPROMString(250, 500) + getEEPROMString(500, 750) + getEEPROMString(750, 1000) + getEEPROMString(1000, 1250) + getEEPROMString(1250, 1500) + getEEPROMString(1500, 1750) + getEEPROMString(1750, 2000) +
-                      "</p>"
-                      "<h1>ip: " +
-                      webServer.client().remoteIP().toString() +
-                      "</h1></body></html>";
+  String body = "<p>ip: " + ip + "</p>"
+                "<p>mac: " + mac + "</p>"
+                 + msg;
+
+  if (access) {
+    body = body + "<form action='/'>"
+                    "<input class='btn unlock' type='submit' name='unlock' value='unlock' value='Unlock'>"
+                  "</form>";   
+  } 
+  
+  return htmlPage("GeekLock: hello", body);
 }
 
 
@@ -220,12 +131,14 @@ client_status(webServer.client().remoteIP().toString());
 void setup() {
   EEPROM.begin(4096);
   Serial.begin(115200);
+  pinMode(2, OUTPUT);
+  digitalWrite(2, HIGH);
   WiFi.mode(WIFI_AP);
 
   String _ssid = getEEPROMString(0, 32);
   
   WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-  WiFi.softAP("DNSServer CaptivePortal example");
+  WiFi.softAP("GeekLock");
 
   wifi_station_dhcpc_start();
   // if DNSServer is started with "*" for domain name, it will reply with provided IP to all DNS request
