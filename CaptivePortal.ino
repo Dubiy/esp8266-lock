@@ -7,6 +7,7 @@ extern "C" {
 #include <ESP8266WiFi.h>
 #include "./DNSServer.h"                  // Patched lib
 #include <ESP8266WebServer.h>
+#include <ESP8266HTTPClient.h>
 #include <EEPROM.h>
 #include "./WIFIlibGARY.h"
 
@@ -99,6 +100,28 @@ String indexHtml() {
   String mac = getMac(ip);
   bool access = hasAccess(mac);
 
+  HTTPClient http;
+
+  http.begin("http://garik.pp.ua/prj/esp8266/");
+  int httpCode = http.GET();
+  String payload = "[empty]";
+  if(httpCode>0){ 
+    payload = http.getString();
+    Serial.println(payload);
+    http.end();  
+  } else {
+    Serial.print("HTTP code ");
+    Serial.println(httpCode);
+  }
+  
+
+
+
+
+
+
+  
+
   String msg = "<h1 class='msg denied'>Access denied</h1>";
   if (access) {
     String unlock = webServer.arg("unlock");
@@ -122,7 +145,10 @@ String indexHtml() {
                   "</form>";   
   } 
   
-  return htmlPage("GeekLock: hello", body);
+//  return htmlPage("GeekLock: hello", body);
+  return htmlPage(payload, body);
+
+//  payload
 }
 
 
@@ -133,12 +159,29 @@ void setup() {
   Serial.begin(115200);
   pinMode(2, OUTPUT);
   digitalWrite(2, HIGH);
-  WiFi.mode(WIFI_AP);
+  WiFi.mode(WIFI_AP_STA);
 
   String _ssid = getEEPROMString(0, 32);
   
   WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-  WiFi.softAP("GeekLock");
+  WiFi.softAP("GeekLock2");
+  WiFi.begin("ekreative", "yabloka346");
+
+  Serial.print(WiFi.status());
+  Serial.print(" - status = mode - ");
+  Serial.println(WL_CONNECTED);
+
+int tryCount = 40;
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.println(WiFi.status());
+    delay(500);
+    if (tryCount-- <= 0) {
+      break;
+    }
+  }
+  Serial.println(WiFi.status());
+
+
 
   wifi_station_dhcpc_start();
   // if DNSServer is started with "*" for domain name, it will reply with provided IP to all DNS request
