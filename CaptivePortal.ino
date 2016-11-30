@@ -55,20 +55,21 @@ void setup() {
   Serial.print(" - status = mode - ");
   Serial.println(WL_CONNECTED);
 
+  Serial.print("Connecting...");
   int tryCount = 40;
   while (WiFi.status() != WL_CONNECTED) {
-    Serial.println(WiFi.status());
+    Serial.print(".");
     delay(500);
     if (tryCount-- <= 0) {
       break;
     }
   }
-  Serial.println(WiFi.status());
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("Connected");
+  } else {
+    Serial.print("Connectiong failed");
+  }
 
-  Serial.print("users sizeof ");
-  Serial.println(sizeof(users));
-
-  
   wifi_station_dhcpc_start();
   // if DNSServer is started with "*" for domain name, it will reply with provided IP to all DNS request
   dnsServer.start(DNS_PORT, "*", apIP);
@@ -100,11 +101,7 @@ void loop() {
     //previousMillis > currentMillis: It just show the elapsed time from the start of the board. This number will overflow (go back to zero), after approximately 50 days (source: arduino.cc/en/Reference/millis) 
      previousMillis = currentMillis;  
 
-     // do something
-     Serial.println("run start");
-//     getStatus();
-     getUsers();
-     Serial.println("run end");
+     getStatus();
   }
 }
 
@@ -129,9 +126,38 @@ void getStatus() {
     }
 
     const char* timestamp = root["timestamp"];
-    const char* db_update = root["db_update"];
+    const long db_update = root["db_update"].as<long>();
     const char* open      = root["open"];
     const bool  lock      = root["lock"];
+
+    if (EEPROMReadLong(OFFSET_db_timestamp) != db_update) {
+      Serial.println("OLD DB, UPPDATE!!! ");
+      getUsers();  
+      EEPROMWriteLong(OFFSET_db_timestamp, db_update);
+    }
+   
+    //open lock from server
+    if (EEPROMReadLong(OFFSET_open_timestamp) != open) {
+      Serial.println("OPEN DOOR - SERVER COMMAND ");
+      doOpen("SERVER", "SERVER");
+      EEPROMWriteLong(OFFSET_open_timestamp, open);
+    }
+
+    //TODO do global lock (disable unlock, until server unable it again. server only.)
+
+    //TODO update device timestamp, somehow
+
+    //TODO store users to EEPROM
+
+    //TODO expand open form (add user key) - store it on device in cookie
+
+    //TODO check if user has access
+
+    //TODO add led status
+
+    //TODO print QR-code with SSID and IP address of this geeklock
+
+
     
     http.end();  
   } else {
@@ -140,76 +166,83 @@ void getStatus() {
   }
 }
 
-
+void doOpen(String mac, String key) {
+    Serial.print("DO OPEN DOOR! MAC: ");
+    Serial.print(mac);
+    Serial.print(", KEY:  ");
+    Serial.println(key);
+    Serial.println("PUSH TO QUERY");
+    Serial.println("TRY PUSH QUERY TO SERVER");
+}
 
 
 void getUsers() {
   Serial.println("getUsers()");
-  
-  HTTPClient http;
-  StaticJsonBuffer<2000> jsonBuffer;
 
-  http.begin("http://garik.pp.ua/prj/geeklock/users/");
-  int httpCode = http.GET();
-  String json = "[empty]";
-  if(httpCode>0){ 
-    json = http.getString();
-    http.end();
-    Serial.println(json);
-
-    //TODO parse json here
-    JsonObject& root = jsonBuffer.parseObject(json);
-    if (!root.success()) {
-      Serial.println("parseObject() failed");
-      return;
-    }
-
-    const int users_count = root["length"];
-    const int offset = root["offset"];
-    Serial.print("users_count: ");
-    Serial.println(users_count);
-
-    for (int i = 0; i < users_count; i++) {
-      const char* mac = root["users"][i]["mac"];
-      const char* key = root["users"][i]["key"];
-
-      Serial.print("user ");
-      Serial.print(i);
-      Serial.print(": MAC = ");
-      Serial.print(mac);
-      Serial.print(", KEY = ");
-      Serial.println(key);
-
-      users[offset + i].mac = mac;
-      users[offset + i].key = key;
- 
-    } 
-
-    Serial.println("done");
-    Serial.print("users sizeof ");
-    Serial.println(sizeof(users));
-       
-  } else {
-    Serial.print("HTTP code ");
-    Serial.println(httpCode);
+  //do clear users
+  int users_array_length = sizeof(users) /sizeof(users[0]);
+  for (int i = 0; i < users_array_length; i++) {
+    users[i].mac = "";
+    users[i].key = "";
   }
-  Serial.println("done2/return");
+  
+  
+  bool readNextBatch;
+  String offset_url = "0";
+
+  do {
+    readNextBatch = false;
+  
+    HTTPClient http;
+    StaticJsonBuffer<2000> jsonBuffer;
+    
+    http.begin("http://garik.pp.ua/prj/geeklock/users/?offset=" + offset_url);
+    int httpCode = http.GET();
+    String json = "[empty]";
+    if(httpCode>0){ 
+      json = http.getString();
+      http.end();
+      Serial.println(json);
+  
+      JsonObject& root = jsonBuffer.parseObject(json);
+      if (!root.success()) {
+        Serial.println("parseObject() failed");
+        return;
+      }
+  
+      const int total = root["total"];
+      const int users_count = root["length"];
+      const int offset = root["offset"];
+      offset_url = String(offset + users_count);
+
+      for (int i = 0; i < users_count; i++) {
+        const char* mac = root["users"][i]["mac"];
+        const char* key = root["users"][i]["key"];
+        users[offset + i].mac = mac;
+        users[offset + i].key = key;   
+      } 
+
+      if (offset + users_count < total) {
+        readNextBatch = true;
+      }  
+    } else {
+      Serial.print("HTTP code ");
+      Serial.println(httpCode);
+    }
+  } while (readNextBatch);
 
 
-  for (int i = 0; i < 100; i++) {
-      Serial.print("user ");
-      Serial.print(i);
-      Serial.print(": MAC = ");
-      Serial.print(Serial.print(users[i].mac));
-      Serial.print(", KEY = ");
-      Serial.println(Serial.print(users[i].key));
+  for (int i = 0; i < users_array_length; i++) {
+    Serial.print("user ");
+    Serial.print(i);
+    Serial.print(": MAC = ");
+    Serial.print(users[i].mac);
+    Serial.print(", KEY = ");
+    Serial.println(users[i].key);
+  } 
 
-      users[i].mac = users[0].mac;
-      users[i].key = users[0].key;
-
-    } 
-
-    Serial.println("finish output");
+  //do store in EEPROM here
+  Serial.println("do store in EEPROM here");
 }
 
 

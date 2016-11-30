@@ -5,7 +5,12 @@
       OFFSET_client_password = 50,  LENGHT_client_password = 8,
       OFFSET_server_host = 58,      LENGHT_server_host = 64,
       OFFSET_server_apikey = 122,   LENGHT_server_apikey = 32,
-      OFFSET_mac_addresses = 154,   LENGHT_mac_addresses = 3942;
+      OFFSET_db_timestamp = 154,   
+      OFFSET_open_timestamp = 158,
+      OFFSET_mac_addresses = 162,   LENGHT_mac_addresses = 3936;
+
+
+
 
 bool hasAccess(String mac) {
   String macList = getEEPROMString(0, 4096);
