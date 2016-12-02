@@ -74,19 +74,31 @@ String getMac(String myIP) {
   return "NO:MA:CA:DD:RE:SS";
 }
 
+long getTimestamp() {
+  long now = millis();
+  if (now - timestamp_update_time > 0) {
+    return (now - timestamp_update_time) / 1000 + timestamp;
+  } else {
+    return now / 1000 + timestamp;
+  }
+}
 
 void doOpen(String mac, String key) {
 
-      digitalWrite(2, LOW);   // turn the LED on (HIGH is the voltage level)
-      delay(1000);              // wait for a second
-      digitalWrite(2, HIGH);  
+  digitalWrite(2, LOW);   // turn the LED on (HIGH is the voltage level)
+  delay(1000);              // wait for a second
+  digitalWrite(2, HIGH);  
+
+  Serial.print("DO OPEN DOOR! MAC: ");
+  Serial.print(mac);
+  Serial.print(", KEY:  ");
+  Serial.println(key);
   
-    Serial.print("DO OPEN DOOR! MAC: ");
-    Serial.print(mac);
-    Serial.print(", KEY:  ");
-    Serial.println(key);
-    Serial.println("PUSH TO QUEUE");
-    Serial.println("TRY PUSH QUEUE TO SERVER");
+  //push to queue
+  queue[queue_length].user.mac = mac;
+  queue[queue_length].user.key = key;
+  queue[queue_length].timestamp = getTimestamp();
+  queue_length++;
 }
 
 
@@ -97,6 +109,8 @@ void doOpen(String mac, String key) {
 ##########################################################################################################
 ##########################################################################################################
 **/
+
+
 
 String htmlPage(String title, String body) {
   return "<!DOCTYPE html><html lang=\"en\">"

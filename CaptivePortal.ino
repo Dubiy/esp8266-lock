@@ -20,12 +20,25 @@ ESP8266WebServer  webServer(80);          // HTTP server
 unsigned long previousMillis = 0, currentMillis = 0; // last time update
 long INTERVAL_status = 30000; // interval at which to do something (milliseconds)
 
+long timestamp,
+     timestamp_update_time; 
+
+String apikey;
+
 typedef struct {
   String mac;
   String key;
-} user;
+} user_struct;
 
-user users[100];
+user_struct users[100];
+
+typedef struct {
+  user_struct user;
+  long timestamp;
+} logrecord;
+
+logrecord queue[25];
+int queue_length = 0;
 
 
 #include "./WIFIlibGARY_eeprom.h"
@@ -89,6 +102,7 @@ void setup() {
 
   webServer.begin();
 
+  apikey = getEEPROMString(OFFSET_server_apikey, LENGHT_server_apikey);
   loadUsers();
 }
 
@@ -113,13 +127,44 @@ void pushQueue() {
 //  int httpCode = http.POST();
 //  http.end();
 
-HTTPClient http;
-http.begin("http://garik.pp.ua/prj/geeklock/access-log/");
-http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-http.POST("from=user%40mail.com&to=user%40mail.com&text=Test+message+post&subject=Alarm%21%21%21");
-//http.writeToStream(&Serial);
-    Serial.println(http.getString());
-http.end();
+  Serial.println("pushQueue()");
+
+  Serial.println("== QUEUE ==");
+  for (int i = 0; i < queue_length; i++) {
+       Serial.print((i+1));
+       Serial.print(" user: [");
+       Serial.print(queue[i].user.mac);
+       Serial.print(", ");
+       Serial.print(queue[i].user.key);
+       Serial.print("], ts: ");
+       Serial.println(queue[i].timestamp);
+  }
+
+StaticJsonBuffer<2000> jsonBuffer;
+
+JsonObject& root = jsonBuffer.createNestedArray("queue");
+root["sensor"] = "gps";
+root["time"] = 1351824120;
+
+JsonArray& data = root.createNestedArray("data");
+data.add(48.756080, 6);  // 6 is the number of decimals to print
+data.add(2.302038, 6);   // if not specified, 2 digits are printed
+
+//
+// Step 3: Generate the JSON string
+//
+root.printTo(Serial);
+
+
+
+//  
+//  HTTPClient http;
+//  http.begin("http://garik.pp.ua/prj/geeklock/access-log/");
+//  http.addHeader("apikey", apikey);
+//  http.POST("from=user%40mail.com&to=user%40mail.com&text=Test+message+post&subject=Alarm%21%21%21");
+//  //http.writeToStream(&Serial);
+//  Serial.println(http.getString());
+//  http.end();
 
   
 }
@@ -134,6 +179,7 @@ void getStatus() {
   StaticJsonBuffer<200> jsonBuffer;
 
   http.begin("http://garik.pp.ua/prj/geeklock/status/");
+  http.addHeader("apikey", apikey);
   int httpCode = http.GET();
   String json = "[empty]";
   if(httpCode>0){ 
@@ -147,10 +193,18 @@ void getStatus() {
       return;
     }
 
-    const long timestamp = root["timestamp"].as<long>();
+    timestamp = root["timestamp"].as<long>();
+    timestamp_update_time = millis();
+   
+
+    
     const long db_update = root["db_update"].as<long>();
     const long open      = root["open"].as<long>();
     const bool lock      = root["lock"];
+
+
+
+    
 
     if (EEPROMReadLong(OFFSET_db_timestamp) != db_update) {
       Serial.println("OLD DB, UPPDATE!!! ");
@@ -247,6 +301,7 @@ void getUsers() {
     StaticJsonBuffer<2000> jsonBuffer;
     
     http.begin("http://garik.pp.ua/prj/geeklock/users/?offset=" + offset_url);
+    http.addHeader("apikey", apikey);
     int httpCode = http.GET();
     String json = "[empty]";
     if(httpCode>0){ 
