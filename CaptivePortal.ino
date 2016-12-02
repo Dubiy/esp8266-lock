@@ -122,11 +122,6 @@ void loop() {
 }
 
 void pushQueue() {
-//  HTTPClient http;
-//  http.begin("http://garik.pp.ua/prj/geeklock/status/");
-//  int httpCode = http.POST();
-//  http.end();
-
   Serial.println("pushQueue()");
 
   Serial.println("== QUEUE ==");
@@ -140,37 +135,36 @@ void pushQueue() {
        Serial.println(queue[i].timestamp);
   }
 
-StaticJsonBuffer<2000> jsonBuffer;
-
-JsonObject& root = jsonBuffer.createNestedArray("queue");
-root["sensor"] = "gps";
-root["time"] = 1351824120;
-
-JsonArray& data = root.createNestedArray("data");
-data.add(48.756080, 6);  // 6 is the number of decimals to print
-data.add(2.302038, 6);   // if not specified, 2 digits are printed
-
-//
-// Step 3: Generate the JSON string
-//
-root.printTo(Serial);
-
-
-
-//  
-//  HTTPClient http;
-//  http.begin("http://garik.pp.ua/prj/geeklock/access-log/");
-//  http.addHeader("apikey", apikey);
-//  http.POST("from=user%40mail.com&to=user%40mail.com&text=Test+message+post&subject=Alarm%21%21%21");
-//  //http.writeToStream(&Serial);
-//  Serial.println(http.getString());
-//  http.end();
-
+  if (queue_length) {
+    
+    DynamicJsonBuffer jsonBuffer;
+    JsonObject& root = jsonBuffer.createObject();
+    JsonArray& queueArr = root.createNestedArray("queue");
+    
+    for (int i = 0; i < queue_length; i++) {
+      JsonObject& record = queueArr.createNestedObject();
+      record["mac"] = queue[i].user.mac;
+      record["key"] = queue[i].user.key;
+      record["timestamp"] = queue[i].timestamp;
+    }
+    root.prettyPrintTo(Serial);
+    char buffer[1000];
+    root.printTo(buffer, sizeof(buffer));
   
+    HTTPClient http;
+    http.begin("http://garik.pp.ua/prj/geeklock/access-log/");
+    http.addHeader("apikey", apikey);
+    int httpCode = http.POST(buffer);
+    if (httpCode == 200) {
+      queue_length = 0;
+    }
+    http.writeToStream(&Serial);
+    Serial.println(http.getString());
+    http.end();
+  
+  
+  } 
 }
-
-
-
 
 void getStatus() {
   Serial.println("getStatus()");
@@ -194,17 +188,10 @@ void getStatus() {
     }
 
     timestamp = root["timestamp"].as<long>();
-    timestamp_update_time = millis();
-   
-
-    
+    timestamp_update_time = millis();    
     const long db_update = root["db_update"].as<long>();
     const long open      = root["open"].as<long>();
     const bool lock      = root["lock"];
-
-
-
-    
 
     if (EEPROMReadLong(OFFSET_db_timestamp) != db_update) {
       Serial.println("OLD DB, UPPDATE!!! ");
@@ -223,24 +210,12 @@ void getStatus() {
 
     //TODO do global lock (disable unlock, until server unable it again. server only.)
 
-    //TODO update device timestamp, somehow
-
-    //++++++TODO store users to EEPROM
-
-    //++++++TODO expand open form (add user key)
-    
-    //++++++TODO store key in device cookie
-
-    //++++++TODO check if user has access
-
-    //on open push to queue
+    //TODO do ESP.reset(); on save config
 
     //TODO add led status
 
     //TODO print QR-code with SSID and IP address of this geeklock
 
-
-    
     http.end();  
   } else {
     Serial.print("HTTP code ");
@@ -339,7 +314,6 @@ void getUsers() {
     }
   } while (readNextBatch);
 
-
   for (int i = 0; i < users_array_length; i++) {
     Serial.print("user ");
     Serial.print(i);
@@ -353,21 +327,3 @@ void getUsers() {
   Serial.println("do store in EEPROM here");
   saveUsers();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -12,8 +12,6 @@
   int mac_length = 12;
   int key_length = 12;
 
-
-
 bool hasAccess(String mac, String key) {
   if (key == "") {
     return false;
@@ -101,17 +99,6 @@ void doOpen(String mac, String key) {
   queue_length++;
 }
 
-
-
-/***
-##########################################################################################################
-##########################################################################################################
-##########################################################################################################
-##########################################################################################################
-**/
-
-
-
 String htmlPage(String title, String body) {
   return "<!DOCTYPE html><html lang=\"en\">"
          "<head>"
@@ -162,10 +149,6 @@ String indexHtml() {
                   "function storeKey(el) { document.cookie = 'key=' + el.value + '; expires=Thu, 1 Jan 2100 12:00:00 UTC'; }"
                   "function getCookie(cname) {var name = cname + '='; var ca = document.cookie.split(';'); for (var i = 0; i < ca.length; i++) { var c = ca[i]; while (c.charAt(0) == ' ') { c = c.substring(1); } if (c.indexOf(name) == 0) { return c.substring(name.length, c.length); } } return ''; }"
                 "</script>";
-
-// if (document.getElementsByName('key').length) {
-//  console.log(1);
-//}
   
   return htmlPage("GeekLock: hello", body);
 }
