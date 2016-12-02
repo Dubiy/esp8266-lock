@@ -103,8 +103,29 @@ void loop() {
      previousMillis = currentMillis;  
 
      getStatus();
+     pushQueue();
   }
 }
+
+void pushQueue() {
+//  HTTPClient http;
+//  http.begin("http://garik.pp.ua/prj/geeklock/status/");
+//  int httpCode = http.POST();
+//  http.end();
+
+HTTPClient http;
+http.begin("http://garik.pp.ua/prj/geeklock/access-log/");
+http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+http.POST("from=user%40mail.com&to=user%40mail.com&text=Test+message+post&subject=Alarm%21%21%21");
+//http.writeToStream(&Serial);
+    Serial.println(http.getString());
+http.end();
+
+  
+}
+
+
+
 
 void getStatus() {
   Serial.println("getStatus()");
@@ -173,14 +194,6 @@ void getStatus() {
   }
 }
 
-void doOpen(String mac, String key) {
-    Serial.print("DO OPEN DOOR! MAC: ");
-    Serial.print(mac);
-    Serial.print(", KEY:  ");
-    Serial.println(key);
-    Serial.println("PUSH TO QUEUE");
-    Serial.println("TRY PUSH QUEUE TO SERVER");
-}
 
 void loadUsers() {
   int users_array_length = sizeof(users) /sizeof(users[0]);

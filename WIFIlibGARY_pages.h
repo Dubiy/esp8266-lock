@@ -75,6 +75,21 @@ String getMac(String myIP) {
 }
 
 
+void doOpen(String mac, String key) {
+
+      digitalWrite(2, LOW);   // turn the LED on (HIGH is the voltage level)
+      delay(1000);              // wait for a second
+      digitalWrite(2, HIGH);  
+  
+    Serial.print("DO OPEN DOOR! MAC: ");
+    Serial.print(mac);
+    Serial.print(", KEY:  ");
+    Serial.println(key);
+    Serial.println("PUSH TO QUEUE");
+    Serial.println("TRY PUSH QUEUE TO SERVER");
+}
+
+
 
 /***
 ##########################################################################################################
@@ -113,9 +128,7 @@ String indexHtml() {
     String unlock = webServer.arg("unlock");
     if(unlock != "") {
       msg = "<h1 class='msg granted'>Access granted: Door opened!</h1>";
-      digitalWrite(2, LOW);   // turn the LED on (HIGH is the voltage level)
-      delay(1000);              // wait for a second
-      digitalWrite(2, HIGH);  
+      doOpen(mac, key);
     }
   }
   
