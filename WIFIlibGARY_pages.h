@@ -7,18 +7,30 @@
       OFFSET_server_apikey = 122,   LENGHT_server_apikey = 32,
       OFFSET_db_timestamp = 154,   
       OFFSET_open_timestamp = 158,
-      OFFSET_mac_addresses = 162,   LENGHT_mac_addresses = 3936;
+      OFFSET_users = 162;
+
+  int mac_length = 12;
+  int key_length = 12;
 
 
 
-
-bool hasAccess(String mac) {
-  String macList = getEEPROMString(0, 4096);
-
-  if (macList.indexOf(mac) >= 0) {
-    return true;
+bool hasAccess(String mac, String key) {
+  if (key == "") {
+    return false;
   }
+  int users_array_length = sizeof(users) /sizeof(users[0]);
 
+  for (int i = 0; i < users_array_length; i++) {
+    if (key == users[i].key) {
+      if (users[i].mac == mac) {
+        return true;
+      }
+      if (users[i].mac == "") {
+        users[i].mac = mac;
+        return true;
+      }
+    }
+  }
   return false;
 }
 
@@ -40,7 +52,17 @@ String getMac(String myIP) {
     String ipp = address.toString();
 
     if (ipp == myIP) {
-      String mac = String(stat_info->bssid[0],HEX) + ":" + String(stat_info->bssid[1],HEX) + ":" + String(stat_info->bssid[2],HEX) + ":" + String(stat_info->bssid[3],HEX) + ":" + String(stat_info->bssid[4],HEX) + ":" + String(stat_info->bssid[5],HEX);
+      String mac = "";
+      for (int i = 0; i < 6; i++) {
+        String part = String(stat_info->bssid[i],HEX);
+        if (part.length() == 1) {
+          part = "0"+part;
+        }
+
+        mac += part;
+      }
+
+//      String mac = String(stat_info->bssid[0],HEX) + ":" + String(stat_info->bssid[1],HEX) + ":" + String(stat_info->bssid[2],HEX) + ":" + String(stat_info->bssid[3],HEX) + ":" + String(stat_info->bssid[4],HEX) + ":" + String(stat_info->bssid[5],HEX);
       mac.toUpperCase();
       return mac;
     }
@@ -83,18 +105,17 @@ String htmlPage(String title, String body) {
 String indexHtml() {
   String ip = webServer.client().remoteIP().toString();
   String mac = getMac(ip);
-  bool access = hasAccess(mac);
+  String key = webServer.arg("key");
+  bool access = hasAccess(mac, key);
 
   String msg = "<h1 class='msg denied'>Access denied</h1>";
   if (access) {
     String unlock = webServer.arg("unlock");
     if(unlock != "") {
-      msg = "<h1 class='msg granted'>Opened!</h1>";
+      msg = "<h1 class='msg granted'>Access granted: Door opened!</h1>";
       digitalWrite(2, LOW);   // turn the LED on (HIGH is the voltage level)
       delay(1000);              // wait for a second
       digitalWrite(2, HIGH);  
-    } else {
-      msg = "<h1 class='msg granted'>Access granted</h1>";  
     }
   }
   
@@ -102,11 +123,22 @@ String indexHtml() {
                 "<p>mac: " + mac + "</p>"
                  + msg;
 
-  if (access) {
-    body = body + "<form action='/'>"
-                    "<input class='btn unlock' type='submit' name='unlock' value='unlock' value='Unlock'>"
-                  "</form>";   
-  } 
+  
+  body = body + "<form action='/'>"
+                  "<input type='text' name='key' onchange='storeKey(this)'>"
+                  "<input class='btn unlock' type='submit' name='unlock' value='Unlock'>"
+                "</form>";   
+
+  // store key in device cookie
+  body = body + "<script>"
+                  "if (document.getElementsByName('key').length) { document.getElementsByName('key')[0].value = getCookie('key'); }"
+                  "function storeKey(el) { document.cookie = 'key=' + el.value + '; expires=Thu, 1 Jan 2100 12:00:00 UTC'; }"
+                  "function getCookie(cname) {var name = cname + '='; var ca = document.cookie.split(';'); for (var i = 0; i < ca.length; i++) { var c = ca[i]; while (c.charAt(0) == ' ') { c = c.substring(1); } if (c.indexOf(name) == 0) { return c.substring(name.length, c.length); } } return ''; }"
+                "</script>";
+
+// if (document.getElementsByName('key').length) {
+//  console.log(1);
+//}
   
   return htmlPage("GeekLock: hello", body);
 }
@@ -180,13 +212,7 @@ String handle_config() {
                   "</label>"
                 
                   "<input class='btn save' type='submit' value='Update list'>"
-                "</form>"
-
-                "<h3>Mac list</h3>"
-                "<code><pre>"
-                 + getEEPROMString(OFFSET_mac_addresses, LENGHT_mac_addresses) + 
-                "</pre></code>";
-
+                "</form>";
   return htmlPage("GeekLock: config", body);
 }
 

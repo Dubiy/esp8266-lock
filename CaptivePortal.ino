@@ -65,9 +65,9 @@ void setup() {
     }
   }
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.print("Connected");
+    Serial.println("Connected");
   } else {
-    Serial.print("Connectiong failed");
+    Serial.println("Connectiong failed");
   }
 
   wifi_station_dhcpc_start();
@@ -89,6 +89,7 @@ void setup() {
 
   webServer.begin();
 
+  loadUsers();
 }
 
 void loop() {
@@ -125,15 +126,16 @@ void getStatus() {
       return;
     }
 
-    const char* timestamp = root["timestamp"];
+    const long timestamp = root["timestamp"].as<long>();
     const long db_update = root["db_update"].as<long>();
-    const char* open      = root["open"];
-    const bool  lock      = root["lock"];
+    const long open      = root["open"].as<long>();
+    const bool lock      = root["lock"];
 
     if (EEPROMReadLong(OFFSET_db_timestamp) != db_update) {
       Serial.println("OLD DB, UPPDATE!!! ");
       getUsers();  
       EEPROMWriteLong(OFFSET_db_timestamp, db_update);
+      EEPROM.commit();
     }
    
     //open lock from server
@@ -141,17 +143,22 @@ void getStatus() {
       Serial.println("OPEN DOOR - SERVER COMMAND ");
       doOpen("SERVER", "SERVER");
       EEPROMWriteLong(OFFSET_open_timestamp, open);
+      EEPROM.commit();
     }
 
     //TODO do global lock (disable unlock, until server unable it again. server only.)
 
     //TODO update device timestamp, somehow
 
-    //TODO store users to EEPROM
+    //++++++TODO store users to EEPROM
 
-    //TODO expand open form (add user key) - store it on device in cookie
+    //++++++TODO expand open form (add user key)
+    
+    //++++++TODO store key in device cookie
 
-    //TODO check if user has access
+    //++++++TODO check if user has access
+
+    //on open push to queue
 
     //TODO add led status
 
@@ -171,9 +178,39 @@ void doOpen(String mac, String key) {
     Serial.print(mac);
     Serial.print(", KEY:  ");
     Serial.println(key);
-    Serial.println("PUSH TO QUERY");
-    Serial.println("TRY PUSH QUERY TO SERVER");
+    Serial.println("PUSH TO QUEUE");
+    Serial.println("TRY PUSH QUEUE TO SERVER");
 }
+
+void loadUsers() {
+  int users_array_length = sizeof(users) /sizeof(users[0]);
+  for (int i = 0; i < users_array_length; i++) {
+    users[i].mac = getEEPROMString(OFFSET_users + i * (mac_length + key_length),              mac_length);;
+    users[i].key = getEEPROMString(OFFSET_users + i * (mac_length + key_length) + mac_length, key_length);;
+  }
+
+  Serial.println("== USERS LOADED ==");
+
+  for (int i = 0; i < users_array_length; i++) {
+    Serial.print("user ");
+    Serial.print(i);
+    Serial.print(": MAC = ");
+    Serial.print(users[i].mac);
+    Serial.print(", KEY = ");
+    Serial.println(users[i].key);
+  } 
+}
+
+void saveUsers() {
+  int users_array_length = sizeof(users) /sizeof(users[0]);
+  for (int i = 0; i < users_array_length; i++) {
+    setEEPROMString(OFFSET_users + i * (mac_length + key_length),              mac_length, users[i].mac);
+    setEEPROMString(OFFSET_users + i * (mac_length + key_length) + mac_length, key_length, users[i].key);
+  }
+
+  EEPROM.commit();  
+}
+
 
 
 void getUsers() {
@@ -218,8 +255,11 @@ void getUsers() {
       for (int i = 0; i < users_count; i++) {
         const char* mac = root["users"][i]["mac"];
         const char* key = root["users"][i]["key"];
+        
         users[offset + i].mac = mac;
         users[offset + i].key = key;   
+
+        users[offset + i].mac.replace("-", "");
       } 
 
       if (offset + users_count < total) {
@@ -243,6 +283,7 @@ void getUsers() {
 
   //do store in EEPROM here
   Serial.println("do store in EEPROM here");
+  saveUsers();
 }
 
 
