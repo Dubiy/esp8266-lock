@@ -2,12 +2,12 @@
       OFFSET_ap_ssid = 10,          LENGHT_ap_ssid = 16,
       OFFSET_ap_password = 26,      LENGHT_ap_password = 8,
       OFFSET_client_ssid = 34,      LENGHT_client_ssid = 16,
-      OFFSET_client_password = 50,  LENGHT_client_password = 8,
-      OFFSET_server_host = 58,      LENGHT_server_host = 64,
-      OFFSET_server_apikey = 122,   LENGHT_server_apikey = 32,
-      OFFSET_db_timestamp = 154,   
-      OFFSET_open_timestamp = 158,
-      OFFSET_users = 162;
+      OFFSET_client_password = 50,  LENGHT_client_password = 16,
+      OFFSET_server_host = 66,      LENGHT_server_host = 64,
+      OFFSET_server_apikey = 130,   LENGHT_server_apikey = 32,
+      OFFSET_db_timestamp = 162,   
+      OFFSET_open_timestamp = 166,
+      OFFSET_users = 170;
 
   int mac_length = 12;
   int key_length = 12;
@@ -97,6 +97,11 @@ void doOpen(String mac, String key) {
   queue[queue_length].user.key = key;
   queue[queue_length].timestamp = getTimestamp();
   queue_length++;
+
+
+///////TODO if queue length  > 25 override first
+
+  
 }
 
 String htmlPage(String title, String body) {
@@ -199,7 +204,7 @@ String handle_config() {
                   "</label>"
                   
                   "<label>SSID password:"
-                    "<input type='text' name='ap_password' value='" + getEEPROMString(OFFSET_ap_password, LENGHT_ap_password) + "' maxlength='8'>"
+                    "<input type='text' name='ap_password' value='" + getEEPROMString(OFFSET_ap_password, LENGHT_ap_password) + "' maxlength='16'>"
                   "</label>"
                   
                   "<h3>Internet Access Point</h3>"

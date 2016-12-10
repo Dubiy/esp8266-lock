@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 #ifdef ESP8266
 extern "C" {
 #include "user_interface.h"
@@ -39,6 +41,11 @@ typedef struct {
 
 logrecord queue[25];
 int queue_length = 0;
+
+
+////TODO test more than 25 queue lenght
+
+
 
 
 #include "./WIFIlibGARY_eeprom.h"
@@ -264,7 +271,18 @@ void getUsers() {
     users[i].mac = "";
     users[i].key = "";
   }
+
+  //LEDS
+  //1 red - locked 
+  //2 green - unlocked
+
+  //TODO if door opened physicaly more than 30 seconds do alert, do beep
+
+  //TODO beeper
+
+  //swagger.io
   
+  //TODO
   
   bool readNextBatch;
   String offset_url = "0";
