@@ -6,6 +6,9 @@ extern "C" {
 }
 #endif
 
+#define GREEN_LED_PIN 4
+#define RED_LED_PIN 5
+
 #include <ESP8266WiFi.h>
 #include "./DNSServer.h"                  // Patched lib
 #include <ESP8266WebServer.h>
@@ -13,17 +16,17 @@ extern "C" {
 #include <EEPROM.h>
 #include <ArduinoJson.h>
 
-
 const byte        DNS_PORT = 53;          // Capture DNS requests on port 53
 IPAddress         apIP(10, 10, 10, 1);    // Private network for server
 DNSServer         dnsServer;              // Create the DNS object
 ESP8266WebServer  webServer(80);          // HTTP server
 
-unsigned long previousMillis = 0, currentMillis = 0; // last time update
+unsigned long previousMillis = 0, currentMillis = 0, lockAtMillis = 0; // last time update
 long INTERVAL_status = 30000; // interval at which to do something (milliseconds)
+long INTERVAL_lock = 10000;
 
 long timestamp,
-     timestamp_update_time; 
+     timestamp_update_time;
 
 String apikey;
 
@@ -31,22 +34,14 @@ typedef struct {
   String mac;
   String key;
 } user_struct;
-
 user_struct users[100];
 
 typedef struct {
   user_struct user;
   long timestamp;
 } logrecord;
-
 logrecord queue[25];
 int queue_length = 0;
-
-
-////TODO test more than 25 queue lenght
-
-
-
 
 #include "./WIFIlibGARY_eeprom.h"
 #include "./WIFIlibGARY_pages.h"
@@ -55,8 +50,11 @@ int queue_length = 0;
 void setup() {
   EEPROM.begin(4096);
   Serial.begin(115200);
-  pinMode(2, OUTPUT);
-  digitalWrite(2, HIGH);
+  pinMode(GREEN_LED_PIN, OUTPUT);
+  pinMode(RED_LED_PIN, OUTPUT);
+  digitalWrite(GREEN_LED_PIN, LOW);
+  digitalWrite(RED_LED_PIN, LOW);
+
   WiFi.mode(WIFI_AP_STA);
 
   WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
@@ -67,6 +65,20 @@ void setup() {
   } else {
     WiFi.softAP(getEEPROMString(OFFSET_ap_ssid, LENGHT_ap_ssid).c_str());
   }
+
+  Serial.println("Config data");
+  Serial.print("SSID: ");
+  Serial.print(getEEPROMString(OFFSET_ap_ssid, LENGHT_ap_ssid));
+  Serial.print("  password: ");
+  Serial.println(getEEPROMString(OFFSET_ap_password, LENGHT_ap_password));
+
+  Serial.print("Inet SSID: ");
+  Serial.print(getEEPROMString(OFFSET_client_ssid, LENGHT_client_ssid));
+  Serial.print("  password: ");
+  Serial.println(getEEPROMString(OFFSET_client_password, LENGHT_client_password));
+
+  Serial.print("Admin password: ");
+  Serial.print(getEEPROMString(OFFSET_password, LENGHT_password));
 
   //connect to wifi
   WiFi.begin(getEEPROMString(OFFSET_client_ssid, LENGHT_client_ssid).c_str(), getEEPROMString(OFFSET_client_password, LENGHT_client_password).c_str());
@@ -120,19 +132,38 @@ void loop() {
   currentMillis = millis();
 
   if(currentMillis - previousMillis > INTERVAL_status || previousMillis > currentMillis) {
-    //previousMillis > currentMillis: It just show the elapsed time from the start of the board. This number will overflow (go back to zero), after approximately 50 days (source: arduino.cc/en/Reference/millis) 
-     previousMillis = currentMillis;  
+    //previousMillis > currentMillis: It just show the elapsed time from the start of the board. This number will overflow (go back to zero), after approximately 50 days (source: arduino.cc/en/Reference/millis)
+     previousMillis = currentMillis;
 
      getStatus();
      pushQueue();
+
+     if (WiFi.status() != WL_CONNECTED) {
+       Serial.println("Not connected, try to reconnect");
+       WiFi.begin(getEEPROMString(OFFSET_client_ssid, LENGHT_client_ssid).c_str(), getEEPROMString(OFFSET_client_password, LENGHT_client_password).c_str());
+     } else {
+       Serial.println("Ok, connected");
+     }
+  }
+
+  if(lockAtMillis && lockAtMillis < currentMillis) {
+    //do lock after 10 seconds
+    digitalWrite(RED_LED_PIN, HIGH);
+    digitalWrite(GREEN_LED_PIN, LOW);
+    lockAtMillis = 0;
   }
 }
 
-void pushQueue() {
+void pushQueue() { //push log to server
   Serial.println("pushQueue()");
+  int queue_array_length = sizeof(queue) /sizeof(queue[0]);
+  int total = queue_length;
+  if (total > queue_array_length) {
+    total = queue_array_length;
+  }
 
   Serial.println("== QUEUE ==");
-  for (int i = 0; i < queue_length; i++) {
+  for (int i = 0; i < total; i++) {
        Serial.print((i+1));
        Serial.print(" user: [");
        Serial.print(queue[i].user.mac);
@@ -142,13 +173,12 @@ void pushQueue() {
        Serial.println(queue[i].timestamp);
   }
 
-  if (queue_length) {
-    
+  if (total) {
     DynamicJsonBuffer jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
     JsonArray& queueArr = root.createNestedArray("queue");
-    
-    for (int i = 0; i < queue_length; i++) {
+
+    for (int i = 0; i < total; i++) {
       JsonObject& record = queueArr.createNestedObject();
       record["mac"] = queue[i].user.mac;
       record["key"] = queue[i].user.key;
@@ -157,7 +187,7 @@ void pushQueue() {
     root.prettyPrintTo(Serial);
     char buffer[1000];
     root.printTo(buffer, sizeof(buffer));
-  
+
     HTTPClient http;
     http.begin("http://garik.pp.ua/prj/geeklock/access-log/");
     http.addHeader("apikey", apikey);
@@ -168,14 +198,12 @@ void pushQueue() {
     http.writeToStream(&Serial);
     Serial.println(http.getString());
     http.end();
-  
-  
-  } 
+  }
 }
 
 void getStatus() {
   Serial.println("getStatus()");
-  
+
   HTTPClient http;
   StaticJsonBuffer<200> jsonBuffer;
 
@@ -183,11 +211,10 @@ void getStatus() {
   http.addHeader("apikey", apikey);
   int httpCode = http.GET();
   String json = "[empty]";
-  if(httpCode>0){ 
+  if(httpCode>0){
     json = http.getString();
     Serial.println(json);
 
-    //TODO parse json here
     JsonObject& root = jsonBuffer.parseObject(json);
     if (!root.success()) {
       Serial.println("parseObject() failed");
@@ -195,18 +222,18 @@ void getStatus() {
     }
 
     timestamp = root["timestamp"].as<long>();
-    timestamp_update_time = millis();    
+    timestamp_update_time = millis();
     const long db_update = root["db_update"].as<long>();
     const long open      = root["open"].as<long>();
     const bool lock      = root["lock"];
 
     if (EEPROMReadLong(OFFSET_db_timestamp) != db_update) {
       Serial.println("OLD DB, UPPDATE!!! ");
-      getUsers();  
+      getUsers();
       EEPROMWriteLong(OFFSET_db_timestamp, db_update);
       EEPROM.commit();
     }
-   
+
     //open lock from server
     if (EEPROMReadLong(OFFSET_open_timestamp) != open) {
       Serial.println("OPEN DOOR - SERVER COMMAND ");
@@ -215,23 +242,29 @@ void getStatus() {
       EEPROM.commit();
     }
 
-    //TODO do global lock (disable unlock, until server unable it again. server only.)
+    //---TODO do global lock (disable unlock, until server unable it again. server only.)
 
     //TODO do ESP.reset(); on save config
 
-    //TODO add led status
+    //+++TODO add led status
 
     //TODO print QR-code with SSID and IP address of this geeklock
 
-    http.end();  
+
+    //TODO if door opened physicaly more than 30 seconds do alert, do beep
+
+    //TODO beeper
+
+    //swagger.io
+
+    http.end();
   } else {
     Serial.print("HTTP code ");
     Serial.println(httpCode);
   }
 }
 
-
-void loadUsers() {
+void loadUsers() { //load from EEPROM
   int users_array_length = sizeof(users) /sizeof(users[0]);
   for (int i = 0; i < users_array_length; i++) {
     users[i].mac = getEEPROMString(OFFSET_users + i * (mac_length + key_length),              mac_length);;
@@ -247,22 +280,21 @@ void loadUsers() {
     Serial.print(users[i].mac);
     Serial.print(", KEY = ");
     Serial.println(users[i].key);
-  } 
+  }
 }
 
-void saveUsers() {
+void saveUsers() { //save to EEPROM
+
   int users_array_length = sizeof(users) /sizeof(users[0]);
   for (int i = 0; i < users_array_length; i++) {
     setEEPROMString(OFFSET_users + i * (mac_length + key_length),              mac_length, users[i].mac);
     setEEPROMString(OFFSET_users + i * (mac_length + key_length) + mac_length, key_length, users[i].key);
   }
 
-  EEPROM.commit();  
+  EEPROM.commit();
 }
 
-
-
-void getUsers() {
+void getUsers() { //load from server
   Serial.println("getUsers()");
 
   //do clear users
@@ -272,42 +304,30 @@ void getUsers() {
     users[i].key = "";
   }
 
-  //LEDS
-  //1 red - locked 
-  //2 green - unlocked
-
-  //TODO if door opened physicaly more than 30 seconds do alert, do beep
-
-  //TODO beeper
-
-  //swagger.io
-  
-  //TODO
-  
   bool readNextBatch;
   String offset_url = "0";
 
   do {
     readNextBatch = false;
-  
+
     HTTPClient http;
     StaticJsonBuffer<2000> jsonBuffer;
-    
+
     http.begin("http://garik.pp.ua/prj/geeklock/users/?offset=" + offset_url);
     http.addHeader("apikey", apikey);
     int httpCode = http.GET();
     String json = "[empty]";
-    if(httpCode>0){ 
+    if(httpCode>0){
       json = http.getString();
       http.end();
       Serial.println(json);
-  
+
       JsonObject& root = jsonBuffer.parseObject(json);
       if (!root.success()) {
         Serial.println("parseObject() failed");
         return;
       }
-  
+
       const int total = root["total"];
       const int users_count = root["length"];
       const int offset = root["offset"];
@@ -316,16 +336,16 @@ void getUsers() {
       for (int i = 0; i < users_count; i++) {
         const char* mac = root["users"][i]["mac"];
         const char* key = root["users"][i]["key"];
-        
+
         users[offset + i].mac = mac;
-        users[offset + i].key = key;   
+        users[offset + i].key = key;
 
         users[offset + i].mac.replace("-", "");
-      } 
+      }
 
       if (offset + users_count < total) {
         readNextBatch = true;
-      }  
+      }
     } else {
       Serial.print("HTTP code ");
       Serial.println(httpCode);
@@ -339,7 +359,7 @@ void getUsers() {
     Serial.print(users[i].mac);
     Serial.print(", KEY = ");
     Serial.println(users[i].key);
-  } 
+  }
 
   //do store in EEPROM here
   Serial.println("do store in EEPROM here");
