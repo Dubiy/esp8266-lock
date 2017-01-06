@@ -6,8 +6,10 @@ extern "C" {
 }
 #endif
 
-#define GREEN_LED_PIN 4
-#define RED_LED_PIN 5
+#define GREEN_LED_PIN     4
+#define RED_LED_PIN       5
+#define GERKON_BUTTON_PIN 0         // FLASH BUTTON in NodeMCU at pin GPIO0
+#define ALERT_PIN         16        // Led in NodeMCU at pin GPIO16 (D0).
 
 #include <ESP8266WiFi.h>
 #include "./DNSServer.h"                  // Patched lib
@@ -21,9 +23,11 @@ IPAddress         apIP(10, 10, 10, 1);    // Private network for server
 DNSServer         dnsServer;              // Create the DNS object
 ESP8266WebServer  webServer(80);          // HTTP server
 
-unsigned long previousMillis = 0, currentMillis = 0, lockAtMillis = 0; // last time update
+unsigned long previousMillis = 0, currentMillis = 0, lockAtMillis = 0;
+volatile unsigned long alertAtMillis = 0; // last time update
 long INTERVAL_status = 30000; // interval at which to do something (milliseconds)
 long INTERVAL_lock = 10000;
+long ALERT_lock = 5000;
 
 long timestamp,
      timestamp_update_time;
@@ -123,6 +127,18 @@ void setup() {
 
   apikey = getEEPROMString(OFFSET_server_apikey, LENGHT_server_apikey);
   loadUsers();
+
+  pinMode(ALERT_PIN, OUTPUT);   // LED pin as output.
+  pinMode(GERKON_BUTTON_PIN, INPUT_PULLUP); // ==> FLASH BUTTON DEFAULT IS HIGH !!
+  digitalWrite(ALERT_PIN, HIGH);  // turn the ALERT off.
+
+  //GPIO0 - gerkon pin
+  //GPIO5 - red LED pin
+  //GPIO4 - green LED pin
+  //GPIO16 - alert pin
+
+  attachInterrupt(digitalPinToInterrupt(GERKON_BUTTON_PIN), pressedButtonInt, CHANGE); // CHANGE, RISING, FALLING
+  // attachInterrupt(digitalPinToInterrupt(GERKON_BUTTON_PIN), unPressedButtonInt, RISING); // CHANGE, RISING, FALLING
 }
 
 void loop() {
@@ -151,6 +167,26 @@ void loop() {
     digitalWrite(RED_LED_PIN, HIGH);
     digitalWrite(GREEN_LED_PIN, LOW);
     lockAtMillis = 0;
+  }
+
+  if(alertAtMillis && alertAtMillis < currentMillis) {
+      digitalWrite(ALERT_PIN, HIGH);
+  } else {
+      digitalWrite(ALERT_PIN, LOW);
+  }
+}
+
+
+void pressedButtonInt() {
+  //http://www.esp8266.com/viewtopic.php?f=32&t=4694&sid=4940a5d2d4b3658c7f8ff8b3e52c1595&start=4#sthash.2nZ3VJGH.dpuf
+  // interrupt service routine (ISR) can ONLY modify VOLATILE variables
+
+  if (digitalRead(GERKON_BUTTON_PIN) == HIGH) {
+    Serial.println(F("Door opened!"));
+    alertAtMillis = millis() + ALERT_lock;
+  } else {
+    Serial.println(F("Door closed!"));
+    alertAtMillis = 0;
   }
 }
 
@@ -246,14 +282,7 @@ void getStatus() {
 
     //TODO do ESP.reset(); on save config
 
-    //+++TODO add led status
-
     //TODO print QR-code with SSID and IP address of this geeklock
-
-
-    //TODO if door opened physicaly more than 30 seconds do alert, do beep
-
-    //TODO beeper
 
     //swagger.io
 
