@@ -33,6 +33,7 @@ long timestamp,
      timestamp_update_time;
 
 String apikey;
+String host;
 
 typedef struct {
   String mac;
@@ -126,6 +127,7 @@ void setup() {
   webServer.begin();
 
   apikey = getEEPROMString(OFFSET_server_apikey, LENGHT_server_apikey);
+  host = getEEPROMString(OFFSET_server_host, LENGHT_server_host);
   loadUsers();
 
   pinMode(ALERT_PIN, OUTPUT);   // LED pin as output.
@@ -225,7 +227,7 @@ void pushQueue() { //push log to server
     root.printTo(buffer, sizeof(buffer));
 
     HTTPClient http;
-    http.begin("http://garik.pp.ua/prj/geeklock/access-log/");
+    http.begin(host + "/api/access-log");
     http.addHeader("apikey", apikey);
     int httpCode = http.POST(buffer);
     if (httpCode == 200) {
@@ -243,7 +245,7 @@ void getStatus() {
   HTTPClient http;
   StaticJsonBuffer<200> jsonBuffer;
 
-  http.begin("http://garik.pp.ua/prj/geeklock/status/");
+  http.begin(host + "/api/status");
   http.addHeader("apikey", apikey);
   int httpCode = http.GET();
   String json = "[empty]";
@@ -265,9 +267,11 @@ void getStatus() {
 
     if (EEPROMReadLong(OFFSET_db_timestamp) != db_update) {
       Serial.println("OLD DB, UPPDATE!!! ");
-      getUsers();
-      EEPROMWriteLong(OFFSET_db_timestamp, db_update);
-      EEPROM.commit();
+
+      if (getUsers()) {
+          EEPROMWriteLong(OFFSET_db_timestamp, db_update);
+          EEPROM.commit();
+      }
     }
 
     //open lock from server
@@ -323,9 +327,8 @@ void saveUsers() { //save to EEPROM
   EEPROM.commit();
 }
 
-void getUsers() { //load from server
+bool getUsers() { //load from server
   Serial.println("getUsers()");
-
   //do clear users
   int users_array_length = sizeof(users) /sizeof(users[0]);
   for (int i = 0; i < users_array_length; i++) {
@@ -342,7 +345,7 @@ void getUsers() { //load from server
     HTTPClient http;
     StaticJsonBuffer<2000> jsonBuffer;
 
-    http.begin("http://garik.pp.ua/prj/geeklock/users/?offset=" + offset_url);
+    http.begin(host + "/api/users?offset=" + offset_url);
     http.addHeader("apikey", apikey);
     int httpCode = http.GET();
     String json = "[empty]";
@@ -354,7 +357,7 @@ void getUsers() { //load from server
       JsonObject& root = jsonBuffer.parseObject(json);
       if (!root.success()) {
         Serial.println("parseObject() failed");
-        return;
+        return false;
       }
 
       const int total = root["total"];
@@ -378,6 +381,13 @@ void getUsers() { //load from server
     } else {
       Serial.print("HTTP code ");
       Serial.println(httpCode);
+      Serial.println("LOAD USERS AGAIN!!!!!!");
+      Serial.println("LOAD USERS AGAIN!!!!!!");
+      Serial.println("LOAD USERS AGAIN!!!!!!");
+      Serial.println("LOAD USERS AGAIN!!!!!!");
+      Serial.println("LOAD USERS AGAIN!!!!!!");
+      Serial.println("LOAD USERS AGAIN!!!!!!");
+      return false;
     }
   } while (readNextBatch);
 
@@ -393,4 +403,5 @@ void getUsers() { //load from server
   //do store in EEPROM here
   Serial.println("do store in EEPROM here");
   saveUsers();
+  return true;
 }

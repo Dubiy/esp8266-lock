@@ -113,8 +113,8 @@ void DNSServer::replyWithIP()
 {
   _dnsHeader->QR = DNS_QR_RESPONSE;
   _dnsHeader->ANCount = _dnsHeader->QDCount;
-  _dnsHeader->QDCount = _dnsHeader->QDCount; 
-  //_dnsHeader->RA = 1;  
+  _dnsHeader->QDCount = _dnsHeader->QDCount;
+  //_dnsHeader->RA = 1;
 
   _udp.beginPacket(_udp.remoteIP(), _udp.remotePort());
   _udp.write(_buffer, _currentPacketSize);
@@ -127,7 +127,7 @@ void DNSServer::replyWithIP()
 
   _udp.write((uint8_t)0);   //0x0001 answer is class IN (internet address)
   _udp.write((uint8_t)1);
- 
+
   _udp.write((unsigned char*)&_ttl, 4);
 
   // Length of RData is 4 bytes (because, in this case, RData is IPv4)
@@ -138,18 +138,18 @@ void DNSServer::replyWithIP()
 
 
 
-  #ifdef DEBUG
-    DEBUG_OUTPUT.print("DNS responds: ");
-    DEBUG_OUTPUT.print(_resolvedIP[0]);
-    DEBUG_OUTPUT.print(".");
-    DEBUG_OUTPUT.print(_resolvedIP[1]);
-    DEBUG_OUTPUT.print(".");
-    DEBUG_OUTPUT.print(_resolvedIP[2]);
-    DEBUG_OUTPUT.print(".");
-    DEBUG_OUTPUT.print(_resolvedIP[3]);
-    DEBUG_OUTPUT.print(" for ");
-    DEBUG_OUTPUT.println(getDomainNameWithoutWwwPrefix());
-  #endif
+  // #ifdef DEBUG
+  //   DEBUG_OUTPUT.print("DNS responds: ");
+  //   DEBUG_OUTPUT.print(_resolvedIP[0]);
+  //   DEBUG_OUTPUT.print(".");
+  //   DEBUG_OUTPUT.print(_resolvedIP[1]);
+  //   DEBUG_OUTPUT.print(".");
+  //   DEBUG_OUTPUT.print(_resolvedIP[2]);
+  //   DEBUG_OUTPUT.print(".");
+  //   DEBUG_OUTPUT.print(_resolvedIP[3]);
+  //   DEBUG_OUTPUT.print(" for ");
+  //   DEBUG_OUTPUT.println(getDomainNameWithoutWwwPrefix());
+  // #endif
 }
 
 void DNSServer::replyWithCustomCode()
@@ -162,4 +162,3 @@ void DNSServer::replyWithCustomCode()
   _udp.write(_buffer, sizeof(DNSHeader));
   _udp.endPacket();
 }
-

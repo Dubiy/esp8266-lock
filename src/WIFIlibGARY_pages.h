@@ -1,13 +1,13 @@
   int OFFSET_password = 0,          LENGHT_password = 10,
       OFFSET_ap_ssid = 10,          LENGHT_ap_ssid = 16,
-      OFFSET_ap_password = 26,      LENGHT_ap_password = 8,
-      OFFSET_client_ssid = 34,      LENGHT_client_ssid = 16,
-      OFFSET_client_password = 50,  LENGHT_client_password = 16,
-      OFFSET_server_host = 66,      LENGHT_server_host = 64,
-      OFFSET_server_apikey = 130,   LENGHT_server_apikey = 32,
-      OFFSET_db_timestamp = 162,
-      OFFSET_open_timestamp = 166,
-      OFFSET_users = 170;
+      OFFSET_ap_password = 26,      LENGHT_ap_password = 18,
+      OFFSET_client_ssid = 44,      LENGHT_client_ssid = 16,
+      OFFSET_client_password = 60,  LENGHT_client_password = 16,
+      OFFSET_server_host = 76,      LENGHT_server_host = 64,
+      OFFSET_server_apikey = 140,   LENGHT_server_apikey = 32,
+      OFFSET_db_timestamp = 172,
+      OFFSET_open_timestamp = 176,
+      OFFSET_users = 180;
 
   int mac_length = 12;
   int key_length = 12;
@@ -197,31 +197,31 @@ String handle_config() {
                   "</label>"
 
                   "<label>SSID:"
-                    "<input type='text' name='ap_ssid' value='" + getEEPROMString(OFFSET_ap_ssid, LENGHT_ap_ssid) + "' maxlength='16'>"
+                    "<input type='text' name='ap_ssid' value='" + getEEPROMString(OFFSET_ap_ssid, LENGHT_ap_ssid) + "' maxlength='" + String(LENGHT_ap_ssid) + "'>"
                     "<span>Example: GeekLock</span>"
                   "</label>"
 
                   "<label>SSID password:"
-                    "<input type='text' name='ap_password' value='" + getEEPROMString(OFFSET_ap_password, LENGHT_ap_password) + "' maxlength='16'>"
+                    "<input type='text' name='ap_password' value='" + getEEPROMString(OFFSET_ap_password, LENGHT_ap_password) + "' maxlength='" + String(LENGHT_ap_password) + "'>"
                   "</label>"
 
                   "<h3>Internet Access Point</h3>"
                   "<label>SSID:"
-                    "<input type='text' name='client_ssid' value='" + getEEPROMString(OFFSET_client_ssid, LENGHT_client_ssid) + "' maxlength='16'>"
+                    "<input type='text' name='client_ssid' value='" + getEEPROMString(OFFSET_client_ssid, LENGHT_client_ssid) + "' maxlength='" + String(LENGHT_client_ssid) + "'>"
                     "<span>Example: geekhub</span>"
                   "</label>"
 
                   "<label>SSID password:"
-                    "<input type='text' name='client_password' value='" + getEEPROMString(OFFSET_client_password, LENGHT_client_password) + "' maxlength='8'>"
+                    "<input type='text' name='client_password' value='" + getEEPROMString(OFFSET_client_password, LENGHT_client_password) + "' maxlength='" + String(LENGHT_client_password) + "'>"
                   "</label>"
 
                   "<h3>Server settings</h3>"
                   "<label>Host:"
-                    "<input type='text' name='server_host' value='" + getEEPROMString(OFFSET_server_host, LENGHT_server_host) + "' maxlength='64'>"
+                    "<input type='text' name='server_host' value='" + getEEPROMString(OFFSET_server_host, LENGHT_server_host) + "' maxlength='" + String(LENGHT_server_host) + "'>"
                   "</label>"
 
                   "<label>Apikey:"
-                    "<input type='text' name='server_apikey' value='" + getEEPROMString(OFFSET_server_apikey, LENGHT_server_apikey) + "' maxlength='32'>"
+                    "<input type='text' name='server_apikey' value='" + getEEPROMString(OFFSET_server_apikey, LENGHT_server_apikey) + "' maxlength='" + String(LENGHT_server_apikey) + "'>"
                   "</label>"
 
                   "<input class='btn save' type='submit' value='Update list'>"
