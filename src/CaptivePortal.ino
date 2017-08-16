@@ -6,10 +6,10 @@ extern "C" {
 }
 #endif
 
-#define GREEN_LED_PIN     4
-#define RED_LED_PIN       5
-#define GERKON_BUTTON_PIN 0         // FLASH BUTTON in NodeMCU at pin GPIO0
-#define ALERT_PIN         16        // Led in NodeMCU at pin GPIO16 (D0).
+#define GREEN_LED_PIN     4    //D2
+#define RED_LED_PIN       5    //D1
+#define GERKON_BUTTON_PIN 12   //D6
+#define ALERT_PIN         16   //D0     // Led in NodeMCU at pin GPIO16 (D0).
 
 #include <ESP8266WiFi.h>
 #include "./DNSServer.h"                  // Patched lib
@@ -27,7 +27,7 @@ unsigned long previousMillis = 0, currentMillis = 0, lockAtMillis = 0;
 volatile unsigned long alertAtMillis = 0; // last time update
 long INTERVAL_status = 30000; // interval at which to do something (milliseconds)
 long INTERVAL_lock = 10000;
-long ALERT_lock = 5000;
+long ALERT_lock = 10000;
 
 long timestamp,
      timestamp_update_time;
@@ -132,7 +132,7 @@ void setup() {
 
   pinMode(ALERT_PIN, OUTPUT);   // LED pin as output.
   pinMode(GERKON_BUTTON_PIN, INPUT_PULLUP); // ==> FLASH BUTTON DEFAULT IS HIGH !!
-  digitalWrite(ALERT_PIN, HIGH);  // turn the ALERT off.
+  digitalWrite(ALERT_PIN, LOW);  // turn the ALERT off.
 
   //GPIO0 - gerkon pin
   //GPIO5 - red LED pin
