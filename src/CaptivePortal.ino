@@ -6,10 +6,13 @@ extern "C" {
 }
 #endif
 
-#define GREEN_LED_PIN     4    //D2
-#define RED_LED_PIN       5    //D1
+     // Led in NodeMCU at pin GPIO16 (D0).
+#define LOCK_PIN          5    //D1
+#define ALERT_PIN         4    //D2
+#define GREEN_LED_PIN     14   //D5
 #define GERKON_BUTTON_PIN 12   //D6
-#define ALERT_PIN         16   //D0     // Led in NodeMCU at pin GPIO16 (D0).
+#define RED_LED_PIN       13   //D7
+
 
 #include <ESP8266WiFi.h>
 #include "./DNSServer.h"                  // Patched lib
@@ -55,27 +58,45 @@ int queue_length = 0;
 void setup() {
   EEPROM.begin(4096);
   Serial.begin(115200);
+  Serial.println("Hello. I'm GeekLock");
+  Serial.println("Creators: ");
+  Serial.println("* Max Stepanenko stepanenkomaksym@gmail.com");
+  Serial.println("* Ihor Dubii http://gary.pp.ua");
+  Serial.println("==================");
+  Serial.println("");
+
   pinMode(GREEN_LED_PIN, OUTPUT);
+  pinMode(LOCK_PIN, OUTPUT);
   pinMode(RED_LED_PIN, OUTPUT);
   digitalWrite(GREEN_LED_PIN, LOW);
+  digitalWrite(LOCK_PIN, LOW);
   digitalWrite(RED_LED_PIN, LOW);
 
   WiFi.mode(WIFI_AP_STA);
 
   WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
 
+
+  String ssid = getEEPROMString(OFFSET_ap_ssid, LENGHT_ap_ssid);
+  String password = getEEPROMString(OFFSET_ap_password, LENGHT_ap_password);
+  if (ssid[0] == 255) {
+    //no data in eeprom (new chip)
+    ssid = "GeekLock";
+    password = "";
+
+  }
   //create AP
-  if (getEEPROMString(OFFSET_ap_password, LENGHT_ap_password).length() >= 8) {
-    WiFi.softAP(getEEPROMString(OFFSET_ap_ssid, LENGHT_ap_ssid).c_str(), getEEPROMString(OFFSET_ap_password, LENGHT_ap_password).c_str());
+  if (password.length() >= 8) {
+    WiFi.softAP(ssid.c_str(), password.c_str());
   } else {
-    WiFi.softAP(getEEPROMString(OFFSET_ap_ssid, LENGHT_ap_ssid).c_str());
+    WiFi.softAP(ssid.c_str());
   }
 
   Serial.println("Config data");
   Serial.print("SSID: ");
-  Serial.print(getEEPROMString(OFFSET_ap_ssid, LENGHT_ap_ssid));
+  Serial.print(ssid);
   Serial.print("  password: ");
-  Serial.println(getEEPROMString(OFFSET_ap_password, LENGHT_ap_password));
+  Serial.println(password);
 
   Serial.print("Inet SSID: ");
   Serial.print(getEEPROMString(OFFSET_client_ssid, LENGHT_client_ssid));
@@ -168,6 +189,7 @@ void loop() {
     //do lock after 10 seconds
     digitalWrite(RED_LED_PIN, HIGH);
     digitalWrite(GREEN_LED_PIN, LOW);
+    digitalWrite(LOCK_PIN, LOW);
     lockAtMillis = 0;
   }
 

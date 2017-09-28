@@ -86,6 +86,7 @@ void doOpen(String mac, String key) {
 
   digitalWrite(RED_LED_PIN, LOW);
   digitalWrite(GREEN_LED_PIN, HIGH);
+  digitalWrite(LOCK_PIN, HIGH);
 
   lockAtMillis = millis() + INTERVAL_lock;
 
@@ -112,9 +113,15 @@ String htmlPage(String title, String body) {
            "<div class='container'>"
              "<h2>" + title + "</h2>" +
              body +
+             "<div class='footer'>"
+             "&copy; GeekLabs, 2017.<br />Created by:<ul>"
+                "<li>Max Stepanenko <a href='mailto:stepanenkomaksym@gmail.com'>stepanenkomaksym@gmail.com</a></li>"
+                "<li>Ihor Dubii <a href='http://gary.pp.ua' target='_blank'>http://gary.pp.ua</a></li>"
+             "</ul>"
+             "<div>"
            "</div>"
            "<style>"
-             "h2 {text-align: center;} label {display: block;  margin-bottom: 15px;} form {display: block;  border: 1px solid gray;  padding: 20px;} .container {text-align: center;  width: 800px;  max-width: 100%;  margin: 0 auto;  display: block; } textarea, input {width: 100%;  display: block;  border: 1px solid gray;  border-radius: 4px;  outline: 0;  padding: 10px 0;  margin: 10px 0;} span {color: gray;  font-family: \"Courier New\", Serif;  display: block;} .btn {-webkit-appearance: button;  display: inline-block;  padding: 6px 12px;  margin-bottom: 0;  font-size: 14px;  font-weight: 400;  line-height: 1.42857143;  text-align: center;  white-space: nowrap;  vertical-align: middle;  -ms-touch-action: manipulation;  touch-action: manipulation;  cursor: pointer;  -webkit-user-select: none;  -moz-user-select: none;  -ms-user-select: none;  user-select: none;  background-image: none;  border: 1px solid transparent;  border-radius: 4px;} .btn.save, .btn.unlock {color: #fff;  background-color: #5cb85c;  border-color: #4cae4c;}"
+             "h2 {text-align: center;} label {display: block;  margin-bottom: 15px;} form {display: block;  border: 1px solid gray;  padding: 20px; margin-bottom: 20px;} .container {text-align: center;  width: 800px;  max-width: 100%;  margin: 0 auto 20px; display: block; } textarea, input {width: 100%;  display: block;  border: 1px solid gray;  border-radius: 4px;  outline: 0;  padding: 10px 0;  margin: 10px 0;} span {color: gray;  font-family: \"Courier New\", Serif;  display: block;} .btn {-webkit-appearance: button;  display: inline-block;  padding: 6px 12px;  margin-bottom: 0;  font-size: 14px;  font-weight: 400;  line-height: 1.42857143;  text-align: center;  white-space: nowrap;  vertical-align: middle;  -ms-touch-action: manipulation;  touch-action: manipulation;  cursor: pointer;  -webkit-user-select: none;  -moz-user-select: none;  -ms-user-select: none;  user-select: none;  background-image: none;  border: 1px solid transparent;  border-radius: 4px;} .btn.save, .btn.unlock {color: #fff;  background-color: #5cb85c;  border-color: #4cae4c;} .footer {border: 1px solid gray; opacity: 0.7; text-align: left; padding: 20px;} ul {padding: 0; list-style: none; margin-bottom: 0;}"
            "</style>"
            "</body>"
 "</html>";
