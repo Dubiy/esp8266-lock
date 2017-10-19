@@ -31,6 +31,7 @@ volatile unsigned long alertAtMillis = 0; // last time update
 long INTERVAL_status = 30000; // interval at which to do something (milliseconds)
 long INTERVAL_lock = 10000;
 long ALERT_lock = 10000;
+int gerkonState = 0, tmpGerkon = 0;
 
 long timestamp,
      timestamp_update_time;
@@ -152,7 +153,7 @@ void setup() {
   loadUsers();
 
   pinMode(ALERT_PIN, OUTPUT);   // LED pin as output.
-  pinMode(GERKON_BUTTON_PIN, INPUT_PULLUP); // ==> FLASH BUTTON DEFAULT IS HIGH !!
+  pinMode(GERKON_BUTTON_PIN, INPUT); // ==> FLASH BUTTON DEFAULT IS HIGH !!
   digitalWrite(ALERT_PIN, LOW);  // turn the ALERT off.
 
   //GPIO0 - gerkon pin
@@ -160,7 +161,7 @@ void setup() {
   //GPIO4 - green LED pin
   //GPIO16 - alert pin
 
-  attachInterrupt(digitalPinToInterrupt(GERKON_BUTTON_PIN), pressedButtonInt, CHANGE); // CHANGE, RISING, FALLING
+  // attachInterrupt(digitalPinToInterrupt(GERKON_BUTTON_PIN), pressedButtonInt, CHANGE); // CHANGE, RISING, FALLING
   // attachInterrupt(digitalPinToInterrupt(GERKON_BUTTON_PIN), unPressedButtonInt, RISING); // CHANGE, RISING, FALLING
 }
 
@@ -198,21 +199,39 @@ void loop() {
   } else {
       digitalWrite(ALERT_PIN, LOW);
   }
-}
 
 
-void pressedButtonInt() {
-  //http://www.esp8266.com/viewtopic.php?f=32&t=4694&sid=4940a5d2d4b3658c7f8ff8b3e52c1595&start=4#sthash.2nZ3VJGH.dpuf
-  // interrupt service routine (ISR) can ONLY modify VOLATILE variables
 
-  if (digitalRead(GERKON_BUTTON_PIN) == HIGH) {
-    Serial.println(F("Door opened!"));
-    alertAtMillis = millis() + ALERT_lock;
-  } else {
-    Serial.println(F("Door closed!"));
-    alertAtMillis = 0;
+
+  tmpGerkon = digitalRead(GERKON_BUTTON_PIN);
+  if (tmpGerkon != gerkonState) {
+    if (tmpGerkon == HIGH) {
+      alertAtMillis = currentMillis + ALERT_lock;
+      Serial.println(F("Door opened!"));
+    } else {
+      alertAtMillis = 0;
+      Serial.println(F("Door closed!"));
+    }
+    gerkonState = tmpGerkon;
   }
+
+
+
 }
+
+
+// void pressedButtonInt() {
+//   //http://www.esp8266.com/viewtopic.php?f=32&t=4694&sid=4940a5d2d4b3658c7f8ff8b3e52c1595&start=4#sthash.2nZ3VJGH.dpuf
+//   // interrupt service routine (ISR) can ONLY modify VOLATILE variables
+//
+//   if (digitalRead(GERKON_BUTTON_PIN) == HIGH) {
+//     Serial.println(F("Door opened!"));
+//     alertAtMillis = millis() + ALERT_lock;
+//   } else {
+//     Serial.println(F("Door closed!"));
+//     alertAtMillis = 0;
+//   }
+// }
 
 void pushQueue() { //push log to server
   Serial.println("pushQueue()");
