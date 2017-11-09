@@ -29,7 +29,7 @@ ESP8266WebServer  webServer(80);          // HTTP server
 unsigned long previousMillis = 0, currentMillis = 0, lockAtMillis = 0;
 volatile unsigned long alertAtMillis = 0; // last time update
 long INTERVAL_status = 30000; // interval at which to do something (milliseconds)
-long INTERVAL_lock = 10000;
+long INTERVAL_lock = 3000;
 long ALERT_lock = 10000;
 int gerkonState = 0, tmpGerkon = 0;
 
