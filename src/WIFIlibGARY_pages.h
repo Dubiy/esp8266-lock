@@ -184,7 +184,7 @@ String handle_config() {
   String server_host = webServer.arg("server_host");
   String server_apikey = webServer.arg("server_apikey");
 
-  if (password != "" && ap_ssid != "" && ap_password != "" && client_ssid != "" && client_password != "" && server_host != "" && server_apikey != "") {
+  if (password != "" && ap_ssid != "" && ap_password != "" && client_ssid != "" && server_host != "" && server_apikey != "") {
     setEEPROMString(OFFSET_password,        LENGHT_password,        password);
     setEEPROMString(OFFSET_ap_ssid,         LENGHT_ap_ssid,         ap_ssid);
     setEEPROMString(OFFSET_ap_password,     LENGHT_ap_password,     ap_password);

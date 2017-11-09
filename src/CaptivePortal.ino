@@ -105,10 +105,16 @@ void setup() {
   Serial.println(getEEPROMString(OFFSET_client_password, LENGHT_client_password));
 
   Serial.print("Admin password: ");
-  Serial.print(getEEPROMString(OFFSET_password, LENGHT_password));
+  Serial.println(getEEPROMString(OFFSET_password, LENGHT_password));
 
   //connect to wifi
-  WiFi.begin(getEEPROMString(OFFSET_client_ssid, LENGHT_client_ssid).c_str(), getEEPROMString(OFFSET_client_password, LENGHT_client_password).c_str());
+  if (getEEPROMString(OFFSET_client_password, LENGHT_client_password).length() >= 8) {
+    WiFi.begin(getEEPROMString(OFFSET_client_ssid, LENGHT_client_ssid).c_str(), getEEPROMString(OFFSET_client_password, LENGHT_client_password).c_str());
+    Serial.println("Connect to wifi with password ");
+  } else {
+    WiFi.begin(getEEPROMString(OFFSET_client_ssid, LENGHT_client_ssid).c_str());
+    Serial.println("Connect to wifi without password ");
+  }
 
   Serial.print(WiFi.status());
   Serial.print(" - status = mode - ");
